@@ -1,0 +1,119 @@
+<!doctype html>
+<style>body {
+  color: #f8a830;
+  background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMC8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAxL1JFQy1TVkctMjAwMTA5MDQvRFREL3N2ZzEwLmR0ZCI+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgaWQ9ImJvZHlfMSIgd2lkdGg9IjYxNCIgaGVpZ2h0PSI0NjEiPgoKPGcgdHJhbnNmb3JtPSJtYXRyaXgoMC41OTk2MDk0IDAgMCAwLjYwMDI2MDQgMCAwKSI+CiAgICA8cGF0aCB0cmFuc2Zvcm09Im1hdHJpeCgxNi4yODI1NyAwIDAgMTYuMjgyNTcgMTI4IDApIiAgZD0iTTQ2LjM2OSAyOC43OTNDIDM0LjUxNyAzNC43MjggMjAuMDk4IDI5LjkzMSAxNC4xNjMgMTguMDc5QyAxMS40MTUgMTIuNTkxIDEwLjk3MiA2LjU1NDk5OCAxMi40NjEgMS4wNjI5OThDIDEuMTk3IDcuMjM2IC0zLjI1NSAyMS4yNjMgMi41NDQgMzIuODQ0QyA4LjQ3OSA0NC42OTYgMjIuODk4IDQ5LjQ5MyAzNC43NSA0My41NThDIDQxLjExNCA0MC4zNzEgNDUuNDQgMzQuNzM3IDQ3LjE2NyAyOC4zNjhDIDQ2LjkwMyAyOC41MTMgNDYuNjQgMjguNjU4IDQ2LjM2OSAyOC43OTN6IiBzdHJva2U9Im5vbmUiIGZpbGw9IiNCREMzQzciIGZpbGwtcnVsZT0ibm9uemVybyIgLz4KPC9nPgo8L3N2Zz4=);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center;
+  background-color: #020201;
+}
+#submitbtn {
+  visibility: hidden;
+}</style>
+<script type="text/javascript">
+function generateKey(password,iterations,salt) {
+	// salt should be Uint8Array or ArrayBuffer
+
+	//var saltBuffer = crypto.getRandomValues(new Uint8Array(8));
+	
+	var binary_string = window.atob(salt);
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+	
+	var saltBuffer = new Uint8Array(bytes.buffer);
+	var encoder = new TextEncoder('utf-8');
+	var passphraseKey = encoder.encode(password);
+
+	// You should firstly import your passphrase Uint8array into a CryptoKey
+window.crypto.subtle.importKey(
+  'raw', 
+  passphraseKey, 
+  {name: 'PBKDF2'}, 
+  false, 
+  ['deriveBits', 'deriveKey']
+).then(function(key) {
+
+  return window.crypto.subtle.deriveKey(
+    { "name": 'PBKDF2',
+      "salt": saltBuffer,
+      // don't get too ambitious, or at least remember
+      // that low-power phones will access your app
+      "iterations": iterations,
+      "hash": 'SHA-512'
+    },
+    key,
+
+    // Note: for this demo we don't actually need a cipher suite,
+    // but the api requires that it must be specified.
+    // For AES the length required to be 128 or 256 bits (not bytes)
+    { "name": 'AES-GCM', "length": 256 },
+
+    // Whether or not the key is extractable (less secure) or not (more secure)
+    // when false, the key can only be passed as a web crypto object, not inspected
+    true,
+
+    // this web crypto object will only be allowed for these functions
+    [ "encrypt", "decrypt" ]
+  )
+}).then(function (webKey) {
+
+  return crypto.subtle.exportKey("raw", webKey);
+
+}).then(function (buffer) {
+
+    document.getElementById("sha512hash").value= bytesToHexString(buffer);
+	document.getElementById('submitbtn').disabled = false;
+	document.getElementById("submitbtn").click();
+});
+
+}
+
+
+function bytesToHexString(bytes) {
+        if (!bytes)
+            return null;
+
+        bytes = new Uint8Array(bytes);
+        var hexBytes = [];
+
+        for (var i = 0; i < bytes.length; ++i) {
+            var byteString = bytes[i].toString(16);
+            if (byteString.length < 2)
+                byteString = "0" + byteString;
+            hexBytes.push(byteString);
+        }
+
+        return hexBytes.join("");
+    }
+
+function generateKey1() {
+	var strTxtA = document.getElementById('username').value;
+	var strTxtB = document.getElementById('password').value;
+	var strTxt = strTxtA + strTxtB;
+
+	var salt = document.getElementById("salt").value;
+	var iteration = document.getElementById("iteration").value;
+	generateKey(strTxt,iteration,salt);
+}
+
+
+</script>
+<head>
+    <title>Authentication required</title>
+</head>
+<body>
+    <h1>Authentication required</h1>
+	<nobr>User: </nobr><input type="text" id="username" name="username" class="texts" autofocus="">
+	<nobr> Password: </nobr><input type="password" id="password" name="password" class="texts">
+	<input id="iteration" type="hidden" name="iteration" value="456789" readonly>
+	<input id="salt" type="hidden" name="salt" value="yZAGA02xS1iIOak0nqiqBQ==" readonly>
+	<input id="genbutton" type="button" value="Login" onclick="generateKey1();"/>
+    <form action="" method=post>
+
+      <p><input id="sha512hash" type="hidden" name="sha512hash" value="" readonly>
+         <input id="submitbtn" type=submit value=Upload disabled>
+    </form>
+</body>
